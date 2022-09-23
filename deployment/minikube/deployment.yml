@@ -1,0 +1,62 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: photon
+  namespace: phoenix
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: photon
+  namespace: phoenix
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: photon
+  template:
+    metadata:
+      labels:
+        app: photon
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/log-level: "debug"
+        vault.hashicorp.com/role: "phoenix-photon"
+        vault.hashicorp.com/agent-pre-populate-only: "true"
+        vault.hashicorp.com/agent-requests-cpu: "125m"
+        vault.hashicorp.com/agent-requests-mem: "128Mi"
+        vault.hashicorp.com/agent-inject-default-template: "json"
+        vault.hashicorp.com/agent-inject-secret-.ph.json: "microservices/data/phoenix/photon"
+    spec:
+      serviceAccountName: photon
+      containers:
+        - name: photon
+          image: photon
+          imagePullPolicy: Never
+          resources:
+            limits:
+              memory: 256Mi
+              cpu: 125m
+            # requests:
+            #   cpu: 125m
+            #   memory: 128Mi
+          ports:
+            - containerPort: 9876
+          # livenessProbe:
+          #   httpGet:
+          #     path: /health
+          #     port: 9876
+          #     scheme: HTTP
+          #   initialDelaySeconds: 30
+          #   periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9876
+              scheme: HTTP
+            initialDelaySeconds: 15
+            failureThreshold: 3
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 1
